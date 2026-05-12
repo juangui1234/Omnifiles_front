@@ -1,0 +1,82 @@
+<div class="page">
+  <app-alert *ngIf="alert()" [type]="alert()!.type" [message]="alert()!.message" (closed)="alert.set(null)"></app-alert>
+
+  <div class="toolbar">
+    <app-search-bar placeholder="Buscar por nombre..." [value]="search" (searched)="search=$event"></app-search-bar>
+    <div class="toolbar-right">
+      <app-select placeholder="Todos los estados" [options]="estadoOptions" [value]="filterEstado" (changed)="filterEstado=$event; loadDocs()" [fullWidth]="false"></app-select>
+      <button class="btn-primary" (click)="modalCreate.set(true)">+ Nuevo Documento</button>
+    </div>
+  </div>
+
+  <div class="table-wrapper" *ngIf="!loading(); else spnr">
+    <table class="table">
+      <thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+      <tbody>
+        <tr *ngIf="filtered.length === 0"><td colspan="6" class="empty">No hay documentos registrados</td></tr>
+        <tr *ngFor="let doc of filtered" class="tr">
+          <td>{{ doc.id }}</td>
+          <td><strong>{{ doc.nombre || '—' }}</strong></td>
+          <td>{{ doc.tipoDocumentoNombre || '—' }}</td>
+          <td><app-badge [estado]="doc.estado" [dot]="true"></app-badge></td>
+          <td>{{ formatDate(doc.fechaCreacion) }}</td>
+          <td>
+            <div class="actions">
+              <button class="btn-sm btn-ghost" (click)="verHistorial(doc)">Historial</button>
+              <button class="btn-sm btn-danger" (click)="eliminar(doc.id)">🗑</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <ng-template #spnr><div class="center"><app-spinner></app-spinner></div></ng-template>
+
+  <!-- Modal Crear -->
+  <app-modal [open]="modalCreate()" title="Crear Documento" (closed)="modalCreate.set(false)">
+    <div class="form">
+      <div class="field">
+        <label class="field-label">Nombre del documento *</label>
+        <input class="field-input" placeholder="Ej: Informe enero" [(ngModel)]="form.nombre" />
+      </div>
+      <app-select label="Tipo documental *" [options]="tipos()" [value]="form.tipoDocumentoId" (changed)="form.tipoDocumentoId=$event"></app-select>
+      <app-select label="Usuario responsable *" [options]="usuarios()" [value]="form.usuarioId" (changed)="form.usuarioId=$event"></app-select>
+      <div class="field">
+        <label class="field-label">Observaciones</label>
+        <input class="field-input" placeholder="Opcional..." [(ngModel)]="form.observaciones" />
+      </div>
+      <div class="file-field">
+        <label class="file-label">Archivo (PDF, DOCX)</label>
+        <label class="file-drop">
+          📎 {{ file ? file.name : 'Seleccionar archivo...' }}
+          <input type="file" accept=".pdf,.docx,.doc" (change)="onFileChange($event)" style="display:none" />
+        </label>
+      </div>
+    </div>
+    <div footer class="modal-footer">
+      <button class="btn-secondary" (click)="modalCreate.set(false)">Cancelar</button>
+      <button class="btn-primary" [disabled]="saving()" (click)="crearDocumento()">
+        {{ saving() ? 'Creando...' : 'Crear Documento' }}
+      </button>
+    </div>
+  </app-modal>
+
+  <!-- Modal Historial -->
+  <app-modal [open]="!!modalHistorial()" [title]="'Historial — ' + (modalHistorial()?.nombre || '')" size="lg" (closed)="modalHistorial.set(null)">
+    <div *ngIf="historial().length === 0" class="empty">Sin registros en el historial</div>
+    <div class="historial">
+      <div *ngFor="let h of historial()" class="hist-item">
+        <div class="hist-dot"></div>
+        <div class="hist-content">
+          <span class="hist-accion">{{ h.accion || h.tipoAccion }}</span>
+          <div class="hist-meta">
+            <span>Por: {{ h.usuarioNombre || '—' }}</span>
+            <span>{{ formatDate(h.fechaAccion || h.fechaCambio) }}</span>
+            <app-badge *ngIf="h.estadoResultante" [estado]="h.estadoResultante"></app-badge>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div footer></div>
+  </app-modal>
+</div>

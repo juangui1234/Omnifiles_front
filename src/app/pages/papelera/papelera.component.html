@@ -1,0 +1,88 @@
+<div class="page">
+  <app-alert *ngIf="alert()" [type]="alert()!.type" [message]="alert()!.message" (closed)="alert.set(null)"></app-alert>
+
+  <!-- Banner de advertencia -->
+  <div class="warning-banner">
+    <span class="warn-icon">⚠️</span>
+    <div>
+      <span class="warn-title">Zona de eliminación permanente</span>
+      <span class="warn-text">Los documentos pueden ser restaurados o eliminados definitivamente. La eliminación permanente no se puede deshacer.</span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon">🗑️</div>
+      <div class="stat-value">{{ items().length }}</div>
+      <div class="stat-label">En papelera</div>
+    </div>
+    <div class="info-card">
+      ℹ️ Restaurar un documento lo regresa a su estado anterior y lo hace visible nuevamente en la lista de documentos activos.
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <input class="search-input" type="search" placeholder="Buscar en papelera..." [(ngModel)]="search" />
+    <span class="count">{{ filtered.length }} {{ filtered.length === 1 ? 'documento' : 'documentos' }}</span>
+  </div>
+
+  <!-- Tabla -->
+  <div class="table-wrapper" *ngIf="!loading(); else spnr">
+    <table class="table">
+      <thead>
+        <tr><th>ID</th><th>Documento</th><th>Eliminado el</th><th>Eliminado por</th><th>Acciones</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngIf="filtered.length === 0"><td colspan="5" class="empty">La papelera está vacía 🗑️</td></tr>
+        <tr *ngFor="let doc of filtered" class="tr">
+          <td>{{ doc.id }}</td>
+          <td>
+            <div class="doc-cell">
+              <div class="doc-icon">📄</div>
+              <div>
+                <div class="doc-name">{{ doc.nombre || 'Documento #' + doc.id }}</div>
+                <div class="doc-type">{{ doc.tipoDocumentoNombre || '—' }}</div>
+              </div>
+            </div>
+          </td>
+          <td>{{ formatDate($any(doc).fechaEliminacion || doc.fechaActualizacion) }}</td>
+          <td>
+            <div class="user-cell">
+              <div class="avatar">{{ inicial($any(doc).usuarioNombre) }}</div>
+              <span>{{ $any(doc).usuarioNombre || '—' }}</span>
+            </div>
+          </td>
+          <td>
+            <div class="actions">
+              <button class="btn-restore" (click)="restaurar(doc.id)">♻ Restaurar</button>
+              <button class="btn-delete"  (click)="confirmDelete.set(doc)">🗑 Eliminar</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <ng-template #spnr><div class="center"><app-spinner></app-spinner></div></ng-template>
+
+  <!-- Modal confirmación eliminación permanente -->
+  <app-modal [open]="!!confirmDelete()" title="¿Eliminar permanentemente?" size="sm" (closed)="confirmDelete.set(null)">
+    <div class="confirm-body">
+      <div class="confirm-icon">⚠️</div>
+      <p class="confirm-text">Estás a punto de eliminar permanentemente el documento:</p>
+      <div class="confirm-doc">
+        📄 <strong>{{ confirmDelete()?.nombre || 'Documento #' + confirmDelete()?.id }}</strong>
+      </div>
+      <p class="confirm-warning">
+        Esta acción <strong>no se puede deshacer</strong>. El documento y todos sus datos serán eliminados para siempre.
+      </p>
+    </div>
+    <div footer class="modal-footer">
+      <button class="btn-secondary" (click)="confirmDelete.set(null)">Cancelar</button>
+      <button class="btn-danger-solid" [disabled]="saving()" (click)="eliminarPermanente()">
+        {{ saving() ? 'Eliminando...' : '🗑 Eliminar para siempre' }}
+      </button>
+    </div>
+  </app-modal>
+</div>

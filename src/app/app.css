@@ -1,0 +1,9 @@
+/* app.css — Componente raíz */
+/* Los estilos globales y design tokens están en src/styles.css */
+/* Este archivo existe para satisfacer la referencia en app.ts (styleUrl) */
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background: var(--color-bg);
+}

@@ -1,0 +1,120 @@
+/* ============================================================
+   OmniFiles — Design Tokens & Estilos Globales
+   Sistema de Gestión Documental | Angular 21
+   ============================================================ */
+
+:root {
+  /* === BRAND COLORS === */
+  --color-primary:       #1E40AF;
+  --color-primary-light: #2563EB;
+  --color-primary-dark:  #1e3a8a;
+  --color-secondary:     #475569;
+  --color-accent:        #0EA5E9;
+
+  /* === NEUTRAL PALETTE === */
+  --color-bg:        #F8FAFC;
+  --color-surface:   #FFFFFF;
+  --color-surface-2: #F1F5F9;
+  --color-border:    #E2E8F0;
+
+  /* === STATE COLORS === */
+  --color-success:    #16A34A;
+  --color-success-bg: #DCFCE7;
+  --color-warning:    #D97706;
+  --color-warning-bg: #FEF3C7;
+  --color-error:      #B91C1C;
+  --color-error-bg:   #FEE2E2;
+  --color-info:       #0EA5E9;
+  --color-info-bg:    #E0F2FE;
+
+  /* === TYPOGRAPHY === */
+  --font-display: 'DM Sans', sans-serif;
+  --font-body:    'Inter', sans-serif;
+
+  --text-xs:   12px;
+  --text-sm:   14px;
+  --text-base: 16px;
+  --text-lg:   18px;
+  --text-xl:   20px;
+  --text-2xl:  24px;
+  --text-3xl:  28px;
+  --text-4xl:  32px;
+  --text-5xl:  40px;
+  --text-6xl:  56px;
+
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* === SPACING === */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* === BORDER RADIUS === */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  24px;
+  --radius-full: 9999px;
+
+  /* === SHADOWS === */
+  --shadow-sm:      0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md:      0 4px 6px -1px rgba(0,0,0,0.08);
+  --shadow-lg:      0 10px 15px -3px rgba(0,0,0,0.08);
+  --shadow-xl:      0 20px 25px -5px rgba(0,0,0,0.1);
+  --shadow-primary: 0 4px 14px rgba(37,99,235,0.3);
+
+  /* === TRANSITIONS === */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* === LAYOUT === */
+  --sidebar-width:  260px;
+  --navbar-height:  64px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-secondary);
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+a    { text-decoration: none; color: inherit; }
+button { cursor: pointer; font-family: var(--font-body); }
+input, textarea, select { font-family: var(--font-body); }
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--color-surface-2); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-secondary); }
+
+/* Animaciones globales */
+@keyframes fadeIn   { from { opacity: 0; transform: translateY(8px); }  to { opacity: 1; transform: none; } }
+@keyframes slideIn  { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+@keyframes scaleIn  { from { opacity: 0; transform: scale(0.95); }       to { opacity: 1; transform: scale(1); } }
+@keyframes spin     { to { transform: rotate(360deg); } }
+@keyframes pulse    { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }

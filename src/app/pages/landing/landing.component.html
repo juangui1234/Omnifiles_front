@@ -1,0 +1,85 @@
+<app-navbar (loginClicked)="goToLogin()"></app-navbar>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <div class="hero-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Sistema de Gestión Documental Empresarial
+    </div>
+    <h1 class="hero-title">
+      Gestiona tus documentos con
+      <span class="hero-highlight"> control total</span>
+    </h1>
+    <p class="hero-subtitle">
+      OmniFiles es la plataforma documental que tu organización necesita. Flujos automáticos, auditoría completa y trazabilidad en cada paso del proceso.
+    </p>
+    <div class="hero-cta">
+      <button class="btn-hero" (click)="goToLogin()">
+        Comenzar ahora
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+      <button class="btn-learn" (click)="scrollFeatures()">Ver características ↓</button>
+    </div>
+  </div>
+
+  <!-- Tarjetas flotantes -->
+  <div class="hero-visual">
+    <div class="float-card">
+      <div class="float-card-header">
+        <span class="dot dot-green"></span>
+        <span>Documento Aprobado</span>
+      </div>
+      <div class="float-card-title">Informe Q1 2026</div>
+      <div class="float-card-meta">
+        <span>Tipo: Informe Mensual</span>
+        <span class="text-success">✓ Aprobado</span>
+      </div>
+    </div>
+    <div class="float-card float-card-2">
+      <div class="float-card-header">
+        <span class="dot dot-orange"></span>
+        <span>En revisión</span>
+      </div>
+      <div class="float-card-title">Contrato Marco 2026</div>
+      <div class="float-card-meta">
+        <span>Asignado: María García</span>
+        <span class="text-warning">⏳ Pendiente</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<section class="stats">
+  <div *ngFor="let s of stats" class="stat-item">
+    <div class="stat-value">{{ s.value }}</div>
+    <div class="stat-label">{{ s.label }}</div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features" class="features">
+  <div class="section-header">
+    <span class="section-badge">Características</span>
+    <h2 class="section-title">Todo lo que necesitas para gestionar documentos</h2>
+    <p class="section-subtitle">Diseñado para entornos administrativos que requieren control, trazabilidad y flujos formales.</p>
+  </div>
+  <div class="features-grid">
+    <div *ngFor="let f of features" class="feature-card">
+      <div class="feature-icon" [innerHTML]="f.iconSvg"></div>
+      <h3 class="feature-title">{{ f.title }}</h3>
+      <p class="feature-desc">{{ f.desc }}</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <h2 class="cta-title">¿Listo para ordenar tu gestión documental?</h2>
+  <p class="cta-subtitle">Accede al sistema con tus credenciales y comienza a gestionar tus documentos hoy.</p>
+  <button class="btn-cta" (click)="goToLogin()">Iniciar Sesión en OmniFiles</button>
+</section>
+
+<app-footer></app-footer>
