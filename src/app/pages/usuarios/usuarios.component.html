@@ -1,0 +1,130 @@
+<div class="page">
+  <app-alert *ngIf="alert()" [type]="alert()!.type" [message]="alert()!.message" (closed)="alert.set(null)"></app-alert>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon primary">👥</div>
+      <div class="stat-value">{{ usuarios().length }}</div>
+      <div class="stat-label">Total Usuarios</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon success">✓</div>
+      <div class="stat-value">{{ usuarios().length }}</div>
+      <div class="stat-label">Activos</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <input class="search-input" type="search" placeholder="Buscar por nombre, email o rol..." [(ngModel)]="search" />
+    <button class="btn-primary" (click)="openCreate()">+ Nuevo Usuario</button>
+  </div>
+
+  <!-- Tabla -->
+  <div class="table-wrapper" *ngIf="!loading(); else spnr">
+    <table class="table">
+      <thead>
+        <tr><th>Usuario</th><th>Rol</th><th>Cargo</th><th>Estado</th><th>Acciones</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngIf="filtered.length === 0"><td colspan="5" class="empty">No hay usuarios registrados</td></tr>
+        <tr *ngFor="let u of filtered" class="tr">
+          <td>
+            <div class="user-cell">
+              <div class="avatar">{{ inicial(u) }}</div>
+              <div>
+                <div class="user-name">{{ u.nombre }}</div>
+                <div class="user-email">{{ u.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td><app-badge [label]="rolLabel(u)" variant="primary"></app-badge></td>
+          <td>{{ $any(u).cargo || '—' }}</td>
+          <td><app-badge [estado]="estadoUsuario(u)" [dot]="true"></app-badge></td>
+          <td>
+            <div class="actions">
+              <button class="btn-sm btn-ghost" (click)="openEdit(u)">✎ Editar</button>
+              <button class="btn-sm" [class]="$any(u).activo !== false ? 'btn-danger' : 'btn-success'" (click)="toggleEstado(u)">
+                {{ $any(u).activo !== false ? 'Desactivar' : 'Activar' }}
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <ng-template #spnr><div class="center"><app-spinner></app-spinner></div></ng-template>
+
+  <!-- Modal Crear -->
+  <app-modal [open]="modalCreate()" title="Crear Nuevo Usuario" size="lg" (closed)="modalCreate.set(false)">
+    <div class="form-grid">
+      <div class="field">
+        <label class="field-label">Nombre completo *</label>
+        <input class="field-input" placeholder="Ej: María García" [(ngModel)]="form.nombre" />
+      </div>
+      <div class="field">
+        <label class="field-label">Correo electrónico *</label>
+        <input class="field-input" type="email" placeholder="usuario@empresa.com" [(ngModel)]="form.email" />
+      </div>
+      <div class="field">
+        <label class="field-label">Rol *</label>
+        <app-select [options]="rolOptions" [value]="form.rolId" (changed)="form.rolId=$event" placeholder="Seleccionar rol..."></app-select>
+      </div>
+      <div class="field">
+        <label class="field-label">Cargo</label>
+        <input class="field-input" placeholder="Ej: Analista Documental" [(ngModel)]="form.cargo" />
+      </div>
+      <div class="field">
+        <label class="field-label">Teléfono</label>
+        <input class="field-input" placeholder="Ej: 300 123 4567" [(ngModel)]="form.telefono" />
+      </div>
+      <div class="field">
+        <label class="field-label">Contraseña *</label>
+        <input class="field-input" type="password" placeholder="••••••••" [(ngModel)]="form.contrasena" />
+      </div>
+    </div>
+    <div footer class="modal-footer">
+      <button class="btn-secondary" (click)="modalCreate.set(false)">Cancelar</button>
+      <button class="btn-primary" [disabled]="saving()" (click)="crear()">
+        {{ saving() ? 'Creando...' : 'Crear Usuario' }}
+      </button>
+    </div>
+  </app-modal>
+
+  <!-- Modal Editar -->
+  <app-modal [open]="!!modalEdit()" [title]="'Editar — ' + (modalEdit()?.nombre || '')" size="lg" (closed)="modalEdit.set(null)">
+    <div class="form-grid">
+      <div class="field">
+        <label class="field-label">Nombre completo</label>
+        <input class="field-input" [(ngModel)]="form.nombre" />
+      </div>
+      <div class="field">
+        <label class="field-label">Correo electrónico</label>
+        <input class="field-input" type="email" [(ngModel)]="form.email" />
+      </div>
+      <div class="field">
+        <label class="field-label">Rol</label>
+        <app-select [options]="rolOptions" [value]="form.rolId" (changed)="form.rolId=$event"></app-select>
+      </div>
+      <div class="field">
+        <label class="field-label">Cargo</label>
+        <input class="field-input" [(ngModel)]="form.cargo" />
+      </div>
+      <div class="field">
+        <label class="field-label">Teléfono</label>
+        <input class="field-input" [(ngModel)]="form.telefono" />
+      </div>
+      <div class="field">
+        <label class="field-label">Nueva contraseña (vacío = no cambia)</label>
+        <input class="field-input" type="password" placeholder="••••••••" [(ngModel)]="form.contrasena" />
+      </div>
+    </div>
+    <div footer class="modal-footer">
+      <button class="btn-secondary" (click)="modalEdit.set(null)">Cancelar</button>
+      <button class="btn-primary" [disabled]="saving()" (click)="editar()">
+        {{ saving() ? 'Guardando...' : 'Guardar Cambios' }}
+      </button>
+    </div>
+  </app-modal>
+</div>

@@ -1,0 +1,48 @@
+.login-page { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+
+.left-panel  { background: var(--color-primary-dark); position: relative; display: flex; align-items: center; overflow: hidden; }
+.left-bg     { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 80% at 20% 80%, rgba(37,99,235,0.4) 0%, transparent 60%); pointer-events: none; }
+.left-content{ position: relative; z-index: 1; padding: 48px 40px; display: flex; flex-direction: column; gap: 24px; }
+
+.brand      { display: flex; align-items: center; gap: 12px; }
+.brand-icon { width: 52px; height: 52px; background: var(--color-primary-light); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(37,99,235,0.5); }
+.brand-name { font-size: var(--text-2xl); font-weight: var(--weight-bold); color: #fff; font-family: var(--font-display); }
+
+.left-title    { font-size: var(--text-3xl); font-weight: var(--weight-bold); color: #fff; line-height: 1.2; letter-spacing: -0.02em; }
+.left-subtitle { font-size: var(--text-base); color: rgba(255,255,255,0.6); line-height: 1.6; max-width: 380px; }
+
+.left-features { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.left-feature  { display: flex; align-items: center; gap: 12px; font-size: var(--text-sm); color: rgba(255,255,255,0.8); font-weight: var(--weight-medium); }
+.check-icon    { width: 24px; height: 24px; background: var(--color-success-bg); color: var(--color-success); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; flex-shrink: 0; }
+
+.right-panel { background: var(--color-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; position: relative; }
+.back-btn { position: absolute; top: 24px; left: 24px; border: none; background: none; color: #94A3B8; font-size: var(--text-sm); font-family: var(--font-body); cursor: pointer; transition: color var(--transition-fast); }
+.back-btn:hover { color: var(--color-primary); }
+
+.form-wrapper { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 20px; animation: fadeIn 0.4s ease; }
+.form-header  { display: flex; flex-direction: column; gap: 4px; }
+.form-title   { font-size: var(--text-3xl); font-weight: var(--weight-bold); color: var(--color-primary); font-family: var(--font-display); }
+.form-subtitle{ font-size: var(--text-sm); color: #94A3B8; }
+
+.form       { display: flex; flex-direction: column; gap: 16px; }
+.field      { display: flex; flex-direction: column; gap: 4px; }
+.field-label{ font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--color-secondary); }
+.field-input{ padding: 10px 12px; border: 1.5px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-secondary); font-size: var(--text-sm); font-family: var(--font-body); outline: none; transition: all var(--transition-base); width: 100%; }
+.field-input:focus { border-color: var(--color-primary-light); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.field-input::placeholder { color: #94A3B8; }
+
+.submit-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; background: var(--color-primary-light); color: #fff; border: none; border-radius: var(--radius-md); font-size: var(--text-base); font-weight: var(--weight-semibold); font-family: var(--font-body); cursor: pointer; box-shadow: var(--shadow-primary); transition: all var(--transition-base); width: 100%; }
+.submit-btn:hover:not(:disabled) { background: var(--color-primary); transform: translateY(-1px); }
+.submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+.form-note { font-size: var(--text-xs); color: #94A3B8; text-align: center; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes spin   { to { transform: rotate(360deg); } }
+
+@media (max-width: 700px) {
+  .login-page { grid-template-columns: 1fr; }
+  .left-panel { display: none; }
+  .right-panel { padding: 24px; }
+}
