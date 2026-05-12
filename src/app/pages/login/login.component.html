@@ -5,22 +5,28 @@
     <div class="left-content">
       <div class="brand">
         <div class="brand-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
         </div>
         <span class="brand-name">OmniFiles</span>
       </div>
       <h2 class="left-title">Sistema de Gestión Documental Empresarial</h2>
       <p class="left-subtitle">Controla, rastrea y gestiona tus documentos con flujos automáticos y trazabilidad completa.</p>
       <div class="left-features">
-        <div class="left-feature" *ngFor="let f of ['Flujos automáticos de aprobación', 'Auditoría en tiempo real', 'Control de accesos por rol']">
-          <div class="check-icon">✓</div>
-          <span>{{ f }}</span>
-        </div>
+        
+        @for (f of features; track f) {
+          <div class="left-feature">
+            <div class="check-icon">✓</div>
+            <span>{{ f }}</span>
+          </div>
+        }
       </div>
     </div>
   </div>
 
-  <!-- Panel derecho: formulario -->
+  
   <div class="right-panel">
     <button class="back-btn" (click)="goBack()">← Volver al inicio</button>
     <div class="form-wrapper">
@@ -29,19 +35,30 @@
         <p class="form-subtitle">Ingresa tus credenciales para acceder al sistema</p>
       </div>
 
-      <app-alert *ngIf="error()" type="error" [message]="error()" (closed)="error.set('')"></app-alert>
+      
+      @if (error()) {
+        <app-alert type="error" [message]="error()" (closed)="error.set('')"></app-alert>
+      }
 
       <form class="form" (ngSubmit)="onSubmit()">
         <div class="field">
           <label class="field-label" for="email">Correo electrónico</label>
-          <input id="email" class="field-input" type="email" placeholder="usuario@empresa.com" [(ngModel)]="email" name="email" autocomplete="email" />
+          <input id="email" class="field-input" type="email"
+                 placeholder="usuario@empresa.com"
+                 [(ngModel)]="email" name="email"
+                 autocomplete="email" />
         </div>
         <div class="field">
           <label class="field-label" for="password">Contraseña</label>
-          <input id="password" class="field-input" type="password" placeholder="••••••••" [(ngModel)]="password" name="password" autocomplete="current-password" />
+          <input id="password" class="field-input" type="password"
+                 placeholder="••••••••"
+                 [(ngModel)]="password" name="password"
+                 autocomplete="current-password" />
         </div>
         <button class="submit-btn" type="submit" [disabled]="loading()">
-          <span *ngIf="loading()" class="spinner"></span>
+          @if (loading()) {
+            <span class="spinner"></span>
+          }
           {{ loading() ? 'Verificando...' : 'Iniciar Sesión' }}
         </button>
       </form>
