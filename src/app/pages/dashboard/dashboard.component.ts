@@ -26,11 +26,23 @@ const ICONS = {
   styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent implements OnInit {
-  loading  = signal(true);
-  docs     = signal<Documento[]>([]);
-  tareas   = signal<Tarea[]>([]);
-  user     = this.auth.user;
-  icons    = ICONS;
+  loading = signal(true);
+  docs    = signal<Documento[]>([]);
+  tareas  = signal<Tarea[]>([]);
+  icons   = ICONS;
+
+  /**
+   * Moderado 11 — Fix 1:
+   * Se elimina "user = this.auth.user" como referencia directa al signal
+   * porque después del fix del auth.service, el nombre del usuario
+   * viene como email (no hay nombre en el login response).
+   * Se expone un getter legible para el template.
+   */
+  get nombreUsuario(): string {
+    const u = this.auth.user();
+    // rolNombre disponible, email como fallback
+    return u?.nombre || u?.email || 'Usuario';
+  }
 
   get stats() {
     const d = this.docs();
@@ -43,17 +55,44 @@ export class DashboardComponent implements OnInit {
   }
 
   get recent(): Documento[] {
-    return [...this.docs()].sort((a,b) => new Date(b.fechaCreacion||0).getTime() - new Date(a.fechaCreacion||0).getTime()).slice(0, 5);
+    /**
+     * Moderado 11 — Fix 2:
+     * El campo correcto es createdAt, no fechaCreacion.
+     */
+    return [...this.docs()]
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+      .slice(0, 5);
   }
 
-  constructor(private api: ApiService, private auth: AuthService, private router: Router) {}
+  constructor(
+    private api:    ApiService,
+    private auth:   AuthService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
-    const uid = this.user()?.id;
-    Promise.all([
-      this.api.getDocumentos().toPromise().catch(() => []),
-      uid ? this.api.getTareasPendientes(uid).toPromise().catch(() => []) : Promise.resolve([]),
-    ]).then(([d, t]) => {
+    /**
+     * Moderado 11 — Fix 3:
+     * El id del usuario es 0 después del login (el backend no lo devuelve).
+     * Se carga la lista de usuarios y se busca por email para obtener el id real,
+     * igual que se hizo en tareas.component.ts.
+     */
+    const email = this.auth.user()?.email;
+
+    const docsPromise = this.api.getDocumentos().toPromise().catch(() => []);
+
+    const tareasPromise = email
+      ? this.api.getUsuarios().toPromise()
+          .then(usuarios => {
+            const yo = (usuarios || []).find(u => u.email === email);
+            return yo
+              ? this.api.getTareasPendientes(yo.id).toPromise().catch(() => [])
+              : Promise.resolve([]);
+          })
+          .catch(() => [])
+      : Promise.resolve([]);
+
+    Promise.all([docsPromise, tareasPromise]).then(([d, t]) => {
       this.docs.set(Array.isArray(d) ? d : []);
       this.tareas.set(Array.isArray(t) ? t : []);
       this.loading.set(false);

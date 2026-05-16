@@ -1,9 +1,12 @@
 <div class="page" *ngIf="!loading(); else spinner">
 
+
   <!-- Bienvenida -->
   <div class="welcome">
     <div>
-      <h2 class="welcome-title">Hola, {{ user()?.nombre || 'Usuario' }} 👋</h2>
+      <!-- Fix: user()?.nombre venía vacío porque el login no devuelve nombre.
+           Se usa el getter nombreUsuario que tiene el fallback correcto -->
+      <h2 class="welcome-title">Hola, {{ nombreUsuario }} 👋</h2>
       <p class="welcome-sub">Aquí tienes un resumen de la actividad del sistema.</p>
     </div>
     <button class="btn-nuevo" (click)="goDocumentos()">
@@ -34,7 +37,8 @@
           <div class="doc-icon" [innerHTML]="icons['file']"></div>
           <div class="doc-info">
             <span class="doc-name">{{ doc.nombre || 'Documento #' + doc.id }}</span>
-            <span class="doc-date">{{ formatDate(doc.fechaCreacion) }}</span>
+            <!-- Fix: campo correcto es createdAt, no fechaCreacion -->
+            <span class="doc-date">{{ formatDate(doc.createdAt) }}</span>
           </div>
           <app-badge [estado]="doc.estado" [dot]="true"></app-badge>
         </div>
@@ -56,7 +60,8 @@
           <div class="task-dot"></div>
           <div class="task-info">
             <span class="task-name">Documento #{{ t.documentoId }}</span>
-            <span class="task-date">{{ formatDate(t.fechaCreacion) }}</span>
+            <!-- Fix: campo correcto es fechaAsignacion, no fechaCreacion -->
+            <span class="task-date">{{ formatDate(t.fechaAsignacion) }}</span>
           </div>
           <app-badge estado="PENDIENTE"></app-badge>
         </div>

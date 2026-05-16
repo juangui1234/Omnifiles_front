@@ -1,10 +1,10 @@
 /** Organismo: Sidebar de navegación lateral */
-import { Component, Input, Output, EventEmitter, computed } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
-interface NavItem { id: string; label: string; icon: string; route: string; }
+interface NavItem { id: string; label: string; icon: string; route: string; roles?: string[]; }
 
 const ICONS: Record<string, string> = {
   home:     '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
@@ -16,16 +16,20 @@ const ICONS: Record<string, string> = {
   logout:   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
 };
 
-const NAV_ITEMS: NavItem[] = [
-  { id: 'dashboard',  label: 'Inicio',            icon: ICONS['home'],     route: '/app/dashboard'  },
-  { id: 'documentos', label: 'Documentos',         icon: ICONS['document'], route: '/app/documentos' },
-  { id: 'tareas',     label: 'Tareas Pendientes',  icon: ICONS['tasks'],    route: '/app/tareas'     },
-  { id: 'auditoria',  label: 'Auditoría',          icon: ICONS['audit'],    route: '/app/auditoria'  },
-  { id: 'papelera',   label: 'Papelera',           icon: ICONS['trash'],    route: '/app/papelera'   },
+const ALL_NAV_ITEMS: NavItem[] = [
+  // Todos los roles
+  { id: 'dashboard',  label: 'Inicio',           icon: ICONS['home'],     route: '/app/dashboard'  },
+  // Todos los roles pueden crear y ver documentos
+  { id: 'documentos', label: 'Documentos',        icon: ICONS['document'], route: '/app/documentos' },
+  // ADMIN, REVISOR, APROBADOR, FIRMANTE
+  { id: 'tareas',     label: 'Tareas Pendientes', icon: ICONS['tasks'],    route: '/app/tareas',    roles: ['ADMIN', 'REVISOR', 'APROBADOR', 'FIRMANTE'] },
+  // Solo ADMIN
+  { id: 'auditoria',  label: 'Auditoría',         icon: ICONS['audit'],    route: '/app/auditoria', roles: ['ADMIN'] },
+  { id: 'papelera',   label: 'Papelera',          icon: ICONS['trash'],    route: '/app/papelera',  roles: ['ADMIN'] },
 ];
 
 const ADMIN_ITEMS: NavItem[] = [
-  { id: 'usuarios',   label: 'Gestión de Usuarios', icon: ICONS['users'],   route: '/app/usuarios'   },
+  { id: 'usuarios', label: 'Gestión de Usuarios', icon: ICONS['users'], route: '/app/usuarios' },
 ];
 
 @Component({
@@ -34,7 +38,6 @@ const ADMIN_ITEMS: NavItem[] = [
   imports: [CommonModule, RouterModule],
   template: `
     <aside [class]="'sidebar' + (collapsed ? ' collapsed' : '')">
-      <!-- Logo -->
       <div class="sidebar-logo">
         <div class="logo-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -45,11 +48,10 @@ const ADMIN_ITEMS: NavItem[] = [
         </div>
       </div>
 
-      <!-- Nav principal -->
       <nav class="sidebar-nav">
         <div class="nav-section">
           <span *ngIf="!collapsed" class="section-label">Principal</span>
-          <a *ngFor="let item of navItems"
+          <a *ngFor="let item of visibleNavItems"
              [routerLink]="item.route"
              routerLinkActive="active"
              class="nav-item"
@@ -72,13 +74,12 @@ const ADMIN_ITEMS: NavItem[] = [
         </div>
       </nav>
 
-      <!-- Footer: usuario + logout -->
       <div class="sidebar-bottom">
         <div *ngIf="!collapsed" class="user-info">
           <div class="user-avatar">{{ userInitial }}</div>
           <div class="user-details">
-            <span class="user-name">{{ user()?.nombre || 'Usuario' }}</span>
-            <span class="user-role">{{ user()?.rol || user()?.rolNombre || '' }}</span>
+            <span class="user-name">{{ user()?.nombre || user()?.email || 'Usuario' }}</span>
+            <span class="user-role">{{ user()?.rolNombre || '' }}</span>
           </div>
         </div>
         <button class="logout-btn" (click)="onLogout()" title="Cerrar sesión">
@@ -94,15 +95,21 @@ export class SidebarComponent {
   @Input()  collapsed: boolean = false;
   @Output() loggedOut = new EventEmitter<void>();
 
-  navItems   = NAV_ITEMS;
   adminItems = ADMIN_ITEMS;
   logoutIcon = ICONS['logout'];
 
   user    = this.auth.user;
   isAdmin = this.auth.isAdmin;
 
+  get visibleNavItems(): NavItem[] {
+    return ALL_NAV_ITEMS.filter(item =>
+      !item.roles || item.roles.some(r => this.auth.hasRole(r))
+    );
+  }
+
   get userInitial(): string {
-    return (this.user()?.nombre || 'U')[0].toUpperCase();
+    const u = this.auth.user();
+    return (u?.nombre || u?.email || 'U')[0].toUpperCase();
   }
 
   constructor(private auth: AuthService) {}
