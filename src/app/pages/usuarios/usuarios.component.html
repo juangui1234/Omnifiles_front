@@ -10,7 +10,8 @@
     </div>
     <div class="stat-card">
       <div class="stat-icon success">✓</div>
-      <div class="stat-value">{{ usuarios().length }}</div>
+      <!-- Fix: antes mostraba usuarios().length en ambas tarjetas -->
+      <div class="stat-value">{{ totalActivos }}</div>
       <div class="stat-label">Activos</div>
     </div>
   </div>
@@ -40,13 +41,15 @@
             </div>
           </td>
           <td><app-badge [label]="rolLabel(u)" variant="primary"></app-badge></td>
-          <td>{{ $any(u).cargo || '—' }}</td>
+          <!-- Fix: u.cargo ya está tipado en UsuarioResponse, no hace falta $any() -->
+          <td>{{ u.cargo || '—' }}</td>
           <td><app-badge [estado]="estadoUsuario(u)" [dot]="true"></app-badge></td>
           <td>
             <div class="actions">
               <button class="btn-sm btn-ghost" (click)="openEdit(u)">✎ Editar</button>
-              <button class="btn-sm" [class]="$any(u).activo !== false ? 'btn-danger' : 'btn-success'" (click)="toggleEstado(u)">
-                {{ $any(u).activo !== false ? 'Desactivar' : 'Activar' }}
+              <!-- Fix: u.activo ya está tipado, no hace falta $any() -->
+              <button class="btn-sm" [class]="u.activo !== false ? 'btn-danger' : 'btn-success'" (click)="toggleEstado(u)">
+                {{ u.activo !== false ? 'Desactivar' : 'Activar' }}
               </button>
             </div>
           </td>

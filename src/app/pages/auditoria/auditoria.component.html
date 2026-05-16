@@ -32,9 +32,14 @@
       <option value="">Todas las acciones</option>
       <option value="CREACION">Creación</option>
       <option value="APROBAC">Aprobación</option>
+      <option value="FLUJO_COMPLETO">Flujo Completo</option>
+      <option value="ETAPA_APROBADA">Etapa Aprobada</option>
       <option value="RECHAZO">Rechazo</option>
+      <option value="ETAPA_RECHAZADA">Etapa Rechazada</option>
       <option value="CORRECC">Corrección</option>
       <option value="ELIMINA">Eliminación</option>
+      <option value="RESTAURA">Restauración</option>
+      <option value="DESCARGA">Descarga</option>
     </select>
   </div>
 
@@ -46,36 +51,41 @@
   <div class="table-wrapper" *ngIf="!loading(); else spnr">
     <table class="table">
       <thead>
-        <tr><th>Fecha y Hora</th><th>Acción</th><th>Documento</th><th>Usuario</th><th>Estado Resultado</th><th>Observaciones</th></tr>
+        <tr><th>Fecha y Hora</th><th>Acción</th><th>Documento</th><th>Usuario</th><th>Estado Resultado</th></tr>
       </thead>
       <tbody>
-        <tr *ngIf="filtered.length === 0"><td colspan="6" class="empty">No hay registros que coincidan</td></tr>
+        <tr *ngIf="filtered.length === 0"><td colspan="5" class="empty">No hay registros que coincidan</td></tr>
         <tr *ngFor="let log of filtered" class="tr">
           <td>
             <div class="date-cell">
-              <span class="date">{{ formatDate(log.fechaAccion || log.fechaCambio) }}</span>
-              <span class="time">{{ formatTime(log.fechaAccion || log.fechaCambio) }}</span>
+              <!-- Fix: fechaAccion no existe, el campo correcto es fechaCambio -->
+              <span class="date">{{ formatDate(log.fechaCambio) }}</span>
+              <span class="time">{{ formatTime(log.fechaCambio) }}</span>
             </div>
           </td>
           <td>
-            <app-badge [label]="log.accion || log.tipoAccion || '—'" [variant]="badgeVariant(log.accion || log.tipoAccion || '')"></app-badge>
+            <!-- Fix: tipoAccion no existe, solo accion -->
+            <app-badge [label]="log.accion || '—'" [variant]="badgeVariant(log.accion || '')"></app-badge>
           </td>
           <td>
             <div class="doc-cell">
-              📄 {{ log.documentoNombre || 'Doc #' + log.documentoId }}
+              <!-- Fix: documentoNombre no existe, solo documentoId -->
+              📄 Doc #{{ log.documentoId }}
             </div>
           </td>
           <td>
             <div class="user-cell">
-              <div class="avatar">{{ inicial(log.usuarioNombre) }}</div>
-              <span>{{ log.usuarioNombre || '—' }}</span>
+              <!-- Fix: usuarioNombre no existe, solo usuarioId -->
+              <div class="avatar">{{ inicial(log.usuarioId) }}</div>
+              <span>Usuario #{{ log.usuarioId || '—' }}</span>
             </div>
           </td>
           <td>
-            <app-badge *ngIf="log.estadoResultante" [estado]="log.estadoResultante"></app-badge>
-            <span *ngIf="!log.estadoResultante" class="dash">—</span>
+            <!-- Fix: estadoResultante no existe, el campo correcto es estado -->
+            <app-badge *ngIf="log.estado" [estado]="log.estado"></app-badge>
+            <span *ngIf="!log.estado" class="dash">—</span>
           </td>
-          <td class="obs">{{ log.observaciones || '—' }}</td>
+          <!-- Fix: columna Observaciones eliminada, no existe en HistorialDocumentoDTO -->
         </tr>
       </tbody>
     </table>

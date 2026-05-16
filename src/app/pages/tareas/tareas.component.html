@@ -1,42 +1,99 @@
 <div class="page">
-  <app-alert *ngIf="alert()" [type]="alert()!.type" [message]="alert()!.message" (closed)="alert.set(null)"></app-alert>
-  <div class="info-banner">ℹ️ Documentos asignados a ti para revisar. Puedes aprobar, solicitar corrección o rechazar.</div>
+
+  <app-alert
+    *ngIf="alert()"
+    [type]="alert()!.type"
+    [message]="alert()!.message"
+    (closed)="alert.set(null)">
+  </app-alert>
+
+  <div class="page-info">
+    ℹ️ Documentos asignados a ti para revisar. Puedes aprobar, solicitar corrección o rechazar.
+  </div>
 
   <div class="table-wrapper" *ngIf="!loading(); else spnr">
     <table class="table">
-      <thead><tr><th>ID</th><th>Documento</th><th>Tipo</th><th>Estado</th><th>Asignada</th><th>Acciones</th></tr></thead>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Documento</th>
+          <th>Estado</th>
+          <th>Asignada</th>
+          <th>Observaciones</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
       <tbody>
-        <tr *ngIf="tareas().length === 0"><td colspan="6" class="empty">No tienes tareas pendientes 🎉</td></tr>
+        <tr *ngIf="tareas().length === 0">
+          <td colspan="6" class="empty">No tienes tareas pendientes 🎉</td>
+        </tr>
+
         <tr *ngFor="let t of tareas()" class="tr">
           <td>{{ t.id }}</td>
-          <td><strong>{{ t.documentoNombre || 'Documento #' + t.documentoId }}</strong></td>
-          <td>{{ t.tipoTarea || 'Revisión' }}</td>
+          <td>
+            <strong>{{ nombreDocumento(t.documentoId) }}</strong>
+          </td>
           <td><app-badge estado="PENDIENTE" [dot]="true"></app-badge></td>
-          <td>{{ formatDate(t.fechaCreacion) }}</td>
+          <td>{{ formatDate(t.fechaAsignacion) }}</td>
+          <!-- Observaciones: solo muestra si tiene contenido -->
+          <td>
+            <span *ngIf="t.observaciones">{{ t.observaciones }}</span>
+            <span *ngIf="!t.observaciones" class="empty">—</span>
+          </td>
           <td>
             <div class="actions">
-              <button class="btn-success" (click)="openModal(t, 'aprobar')">✓ Aprobar</button>
-              <button class="btn-warning" (click)="openModal(t, 'correccion')">✎ Corregir</button>
-              <button class="btn-danger"  (click)="openModal(t, 'rechazar')">✕ Rechazar</button>
+              <button
+                *ngIf="tieneArchivo(t.documentoId)"
+                class="btn btn-ghost"
+                [disabled]="downloading() === t.id"
+                (click)="descargarArchivo(t)">
+                {{ downloading() === t.id ? '⏳' : '📎 Ver archivo' }}
+              </button>
+              <button class="btn btn-green"  (click)="openModal(t, 'aprobar')">✓ Aprobar</button>
+              <button class="btn btn-yellow" (click)="openModal(t, 'correccion')">✎ Corregir</button>
+              <button class="btn btn-red"    (click)="openModal(t, 'rechazar')">✕ Rechazar</button>
             </div>
           </td>
         </tr>
       </tbody>
     </table>
   </div>
-  <ng-template #spnr><div class="center"><app-spinner></app-spinner></div></ng-template>
 
-  <app-modal [open]="!!modal()" [title]="accionLabel()" size="sm" (closed)="modal.set(null)">
-    <div class="modal-body">
-      <div class="modal-doc">📄 {{ modal()?.tarea?.documentoNombre || 'Documento #' + modal()?.tarea?.documentoId }}</div>
-      <div class="field">
-        <label class="field-label">Observaciones (opcional)</label>
-        <textarea class="field-textarea" rows="3" placeholder="Escribe tus observaciones..." [(ngModel)]="obs"></textarea>
+  <ng-template #spnr>
+    <div class="center"><app-spinner></app-spinner></div>
+  </ng-template>
+
+  <!-- Modal de acción -->
+  <app-modal
+    [open]="!!modal()"
+    [title]="accionLabel()"
+    size="sm"
+    (closed)="modal.set(null)">
+
+    <div class="modal-content">
+      <p class="modal-doc">
+        📄 {{ nombreDocumento(modal()?.tarea?.documentoId ?? 0) }}
+      </p>
+      <div class="field-group">
+        <label class="label">Observaciones (opcional)</label>
+        <textarea
+          class="textarea"
+          rows="3"
+          placeholder="Escribe tus observaciones..."
+          [(ngModel)]="obs">
+        </textarea>
       </div>
     </div>
+
     <div footer class="modal-footer">
-      <button class="btn-secondary" (click)="modal.set(null)">Cancelar</button>
-      <button class="btn-primary" [disabled]="saving()" (click)="ejecutar()">{{ saving() ? 'Procesando...' : accionLabel() }}</button>
+      <button class="btn btn-secondary" (click)="modal.set(null)">Cancelar</button>
+      <button
+        class="btn btn-primary"
+        [disabled]="saving()"
+        (click)="ejecutar()">
+        {{ saving() ? 'Procesando...' : accionLabel() }}
+      </button>
     </div>
+
   </app-modal>
 </div>
