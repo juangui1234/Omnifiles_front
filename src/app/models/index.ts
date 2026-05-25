@@ -15,6 +15,7 @@ export interface LoginRequest {
  * El backend NO devuelve un objeto "usuario" anidado.
  */
 export interface LoginResponse {
+  id:               number;   // id real del usuario — agregado al backend
   accessToken:      string;
   tokenType:        string;   // siempre "Bearer"
   expiresInSeconds: number;
@@ -69,7 +70,8 @@ export interface Documento {
 export interface DocumentoDTO {
   nombre:          string;
   tipoDocumentoId: number;
-  usuarioId:       number;
+  flujoId?:        number;
+  usuarioId?:      number;
 }
 
 // ─── Historial ────────────────────────────────────────────────────────────────

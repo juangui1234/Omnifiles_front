@@ -1,15 +1,15 @@
 <div class="page" *ngIf="!loading(); else spinner">
 
-
   <!-- Bienvenida -->
   <div class="welcome">
     <div>
-      <!-- Fix: user()?.nombre venía vacío porque el login no devuelve nombre.
-           Se usa el getter nombreUsuario que tiene el fallback correcto -->
       <h2 class="welcome-title">Hola, {{ nombreUsuario }} 👋</h2>
-      <p class="welcome-sub">Aquí tienes un resumen de la actividad del sistema.</p>
+      <p class="welcome-sub">
+        <span class="rol-badge">{{ rolNombre }}</span>
+        Aquí tienes un resumen de la actividad del sistema.
+      </p>
     </div>
-    <button class="btn-nuevo" (click)="goDocumentos()">
+    <button *ngIf="canCreate" class="btn-nuevo" (click)="goDocumentos()">
       <span [innerHTML]="icons['plus']"></span>
       Nuevo Documento
     </button>
@@ -25,6 +25,7 @@
 
   <!-- Columnas -->
   <div class="columns">
+
     <!-- Documentos recientes -->
     <div class="card">
       <div class="card-header">
@@ -37,7 +38,6 @@
           <div class="doc-icon" [innerHTML]="icons['file']"></div>
           <div class="doc-info">
             <span class="doc-name">{{ doc.nombre || 'Documento #' + doc.id }}</span>
-            <!-- Fix: campo correcto es createdAt, no fechaCreacion -->
             <span class="doc-date">{{ formatDate(doc.createdAt) }}</span>
           </div>
           <app-badge [estado]="doc.estado" [dot]="true"></app-badge>
@@ -46,9 +46,9 @@
     </div>
 
     <!-- Tareas pendientes -->
-    <div class="card">
+    <div class="card" *ngIf="canSeeTareas">
       <div class="card-header">
-        <h3 class="card-title">Tareas Pendientes</h3>
+        <h3 class="card-title">Mis Tareas Pendientes</h3>
         <button class="view-all" (click)="goTareas()">Ver todas →</button>
       </div>
       <div *ngIf="tareas().length === 0" class="empty">
@@ -60,19 +60,50 @@
           <div class="task-dot"></div>
           <div class="task-info">
             <span class="task-name">Documento #{{ t.documentoId }}</span>
-            <!-- Fix: campo correcto es fechaAsignacion, no fechaCreacion -->
             <span class="task-date">{{ formatDate(t.fechaAsignacion) }}</span>
           </div>
           <app-badge estado="PENDIENTE"></app-badge>
         </div>
       </div>
     </div>
+
+    <!-- Panel para CREADOR — acceso rápido -->
+    <div class="card" *ngIf="!canSeeTareas">
+      <div class="card-header">
+        <h3 class="card-title">Mis documentos</h3>
+        <button class="view-all" (click)="goDocumentos()">Ver todos →</button>
+      </div>
+      <div class="quick-stats">
+        <div class="qs-item qs-blue">
+          <div class="qs-value">{{ stats.total }}</div>
+          <div class="qs-label">Total</div>
+        </div>
+        <div class="qs-item qs-yellow">
+          <div class="qs-value">{{ stats.enRevision }}</div>
+          <div class="qs-label">En revisión</div>
+        </div>
+        <div class="qs-item qs-green">
+          <div class="qs-value">{{ stats.aprobados }}</div>
+          <div class="qs-label">Aprobados</div>
+        </div>
+        <div class="qs-item qs-red">
+          <div class="qs-value">{{ stats.rechazados }}</div>
+          <div class="qs-label">Rechazados</div>
+        </div>
+      </div>
+      <div class="divider-line"></div>
+      <button class="btn-crear-doc" (click)="goDocumentos()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Crear nuevo documento
+      </button>
+    </div>
+
   </div>
 </div>
 
 <ng-template #spinner>
   <div class="loading-center">
-    <app-spinner [size]="40"></app-spinner>
+    <app-spinner></app-spinner>
     <span>Cargando panel...</span>
   </div>
 </ng-template>
