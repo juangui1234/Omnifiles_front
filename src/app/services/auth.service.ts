@@ -5,7 +5,7 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
-import { LoginRequest, LoginResponse, UsuarioResponse } from '../models';
+import { LoginResponse, UsuarioResponse } from '../models';
 
 const ROLE_PREFIX = 'ROLE_';
 
@@ -16,14 +16,11 @@ export class AuthService {
 
   private _user  = signal<UsuarioResponse | null>(this.loadUser());
   private _token = signal<string | null>(sessionStorage.getItem('omnifiles_token'));
-  // Fix: roles en signal para que isAdmin y hasRole sean reactivos
   private _roles = signal<string[]>(this.loadRoles());
 
-  readonly user   = this._user.asReadonly();
-  readonly token  = this._token.asReadonly();
-  readonly isAuth = computed(() => !!this._token());
-
-  // Fix: ahora depende del signal _roles — se recalcula sin necesitar Ctrl+R
+  readonly user    = this._user.asReadonly();
+  readonly token   = this._token.asReadonly();
+  readonly isAuth  = computed(() => !!this._token());
   readonly isAdmin = computed(() =>
     this._roles().includes(`${ROLE_PREFIX}ADMIN`)
   );
@@ -33,8 +30,9 @@ export class AuthService {
   login(email: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.API}/login`, { email, password }).pipe(
       tap(res => {
+        // El backend ahora devuelve el id directamente en la respuesta del login
         const usuario: UsuarioResponse = {
-          id:        0,
+          id:        res.id ?? 0,
           nombre:    res.email,
           email:     res.email,
           rolId:     0,
@@ -44,7 +42,7 @@ export class AuthService {
 
         this._token.set(res.accessToken);
         this._user.set(usuario);
-        this._roles.set(res.roles); // Fix: actualizar signal de roles
+        this._roles.set(res.roles);
 
         sessionStorage.setItem('omnifiles_token', res.accessToken);
         sessionStorage.setItem('omnifiles_roles', JSON.stringify(res.roles));
@@ -56,17 +54,12 @@ export class AuthService {
   logout(): void {
     this._user.set(null);
     this._token.set(null);
-    this._roles.set([]); // Fix: limpiar signal de roles al salir
+    this._roles.set([]);
     sessionStorage.removeItem('omnifiles_token');
     sessionStorage.removeItem('omnifiles_roles');
     sessionStorage.removeItem('omnifiles_user');
   }
 
-  /**
-   * Verifica si el usuario tiene un rol específico.
-   * Acepta con o sin prefijo: hasRole('ADMIN') o hasRole('ROLE_ADMIN')
-   * Fix: ahora lee del signal _roles en lugar del sessionStorage directamente
-   */
   hasRole(rol: string): boolean {
     const normalized = rol.startsWith(ROLE_PREFIX) ? rol : `${ROLE_PREFIX}${rol}`;
     return this._roles().includes(normalized);

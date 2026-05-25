@@ -31,39 +31,53 @@ export class TareasComponent implements OnInit {
   ngOnInit(): void { this.load(); }
 
   load(): void {
-    const email = this.auth.user()?.email;
-    if (!email) {
-      this.alert.set({ type: 'error', message: 'No hay sesión activa' });
-      this.loading.set(false);
-      return;
-    }
+    const usuarioId = this.auth.user()?.id ?? 0;
 
-    this.loading.set(true);
-
-    this.api.getUsuarios().subscribe({
-      next: usuarios => {
-        const usuarioActual = usuarios.find(u => u.email === email);
-        if (!usuarioActual) {
-          this.alert.set({ type: 'error', message: 'Usuario no encontrado' });
-          this.loading.set(false);
-          return;
-        }
-
-        this.api.getTareasPendientes(usuarioActual.id).subscribe({
-          next: t => {
-            const lista = t ?? [];
-            this.tareas.set(lista);
-            this.cargarDocumentos(lista);
-            this.loading.set(false);
-          },
-          error: () => {
-            this.alert.set({ type: 'error', message: 'Error cargando tareas' });
+    if (usuarioId > 0) {
+      // Id ya disponible — cargar tareas directamente
+      this.cargarTareasPor(usuarioId);
+    } else {
+      // Id no disponible — solo ADMIN puede listar /usuarios
+      // Para otros roles intentamos con /usuarios y si falla mostramos error claro
+      const email = this.auth.user()?.email;
+      this.loading.set(true);
+      this.api.getUsuarios().subscribe({
+        next: usuarios => {
+          const encontrado = usuarios.find(u => u.email === email);
+          if (encontrado) {
+            // Actualizar el signal con el id real para futuras llamadas
+            (this.auth as any)._user.set(encontrado);
+            sessionStorage.setItem('omnifiles_user', JSON.stringify(encontrado));
+            this.cargarTareasPor(encontrado.id);
+          } else {
+            this.alert.set({ type: 'error', message: 'No se encontró el usuario en el sistema' });
             this.loading.set(false);
           }
-        });
+        },
+        error: () => {
+          // No es ADMIN — no puede listar usuarios
+          // Pedirle al encargado del backend que agregue el id en la respuesta del login
+          this.alert.set({
+            type: 'error',
+            message: 'No se pudo obtener el ID del usuario. Cierra sesión e inicia de nuevo.'
+          });
+          this.loading.set(false);
+        }
+      });
+    }
+  }
+
+  private cargarTareasPor(usuarioId: number): void {
+    this.loading.set(true);
+    this.api.getTareasPendientes(usuarioId).subscribe({
+      next: t => {
+        const lista = t ?? [];
+        this.tareas.set(lista);
+        this.cargarDocumentos(lista);
+        this.loading.set(false);
       },
       error: () => {
-        this.alert.set({ type: 'error', message: 'Error obteniendo datos del usuario' });
+        this.alert.set({ type: 'error', message: 'Error cargando tareas' });
         this.loading.set(false);
       }
     });
@@ -72,13 +86,9 @@ export class TareasComponent implements OnInit {
   private cargarDocumentos(tareas: Tarea[]): void {
     const mapa = new Map<number, Documento>();
     const ids  = [...new Set(tareas.map(t => t.documentoId))];
-
     ids.forEach(id => {
       this.api.getDocumento(id).subscribe({
-        next: doc => {
-          mapa.set(id, doc);
-          this.documentos.set(new Map(mapa));
-        },
+        next: doc => { mapa.set(id, doc); this.documentos.set(new Map(mapa)); },
         error: () => {}
       });
     });
@@ -89,8 +99,7 @@ export class TareasComponent implements OnInit {
   }
 
   tieneArchivo(documentoId: number): boolean {
-    const doc = this.documentos().get(documentoId);
-    return !!doc?.rutaArchivo;
+    return !!this.documentos().get(documentoId)?.rutaArchivo;
   }
 
   openModal(tarea: Tarea, accion: string): void {
@@ -114,7 +123,6 @@ export class TareasComponent implements OnInit {
         const url = window.URL.createObjectURL(blob);
         const a   = document.createElement('a');
         a.href    = url;
-        // Fix: obtener extensión desde la ruta del archivo guardada en BD
         const rutaArchivo = this.documentos().get(tarea.documentoId)?.rutaArchivo || '';
         const ext = rutaArchivo.toLowerCase().includes('.pdf')  ? '.pdf'
                   : rutaArchivo.toLowerCase().includes('.docx') ? '.docx'
@@ -125,7 +133,7 @@ export class TareasComponent implements OnInit {
         this.downloading.set(null);
       },
       error: e => {
-        this.alert.set({ type: 'error', message: e.error?.message || 'Error al descargar el archivo' });
+        this.alert.set({ type: 'error', message: e.error?.message || 'Error al descargar' });
         this.downloading.set(null);
       }
     });
@@ -153,7 +161,7 @@ export class TareasComponent implements OnInit {
         this.load();
       },
       error: e => {
-        this.alert.set({ type: 'error', message: e.error?.message || e.message || 'Error al ejecutar la acción' });
+        this.alert.set({ type: 'error', message: e.error?.message || 'Error al ejecutar la acción' });
         this.saving.set(false);
       }
     });

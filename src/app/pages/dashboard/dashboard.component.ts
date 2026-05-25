@@ -16,6 +16,7 @@ const ICONS = {
   x:     '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
   file:  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
   plus:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  task:  '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
 };
 
 @Component({
@@ -31,17 +32,23 @@ export class DashboardComponent implements OnInit {
   tareas  = signal<Tarea[]>([]);
   icons   = ICONS;
 
-  /**
-   * Moderado 11 — Fix 1:
-   * Se elimina "user = this.auth.user" como referencia directa al signal
-   * porque después del fix del auth.service, el nombre del usuario
-   * viene como email (no hay nombre en el login response).
-   * Se expone un getter legible para el template.
-   */
   get nombreUsuario(): string {
     const u = this.auth.user();
-    // rolNombre disponible, email como fallback
     return u?.nombre || u?.email || 'Usuario';
+  }
+
+  get rolNombre(): string {
+    const u = this.auth.user();
+    return u?.rolNombre || '';
+  }
+
+  get canCreate(): boolean {
+    return this.auth.isAdmin() || this.auth.hasRole('CREADOR');
+  }
+
+  get canSeeTareas(): boolean {
+    return this.auth.hasRole('ADMIN') || this.auth.hasRole('REVISOR') ||
+           this.auth.hasRole('APROBADOR') || this.auth.hasRole('FIRMANTE');
   }
 
   get stats() {
@@ -55,10 +62,6 @@ export class DashboardComponent implements OnInit {
   }
 
   get recent(): Documento[] {
-    /**
-     * Moderado 11 — Fix 2:
-     * El campo correcto es createdAt, no fechaCreacion.
-     */
     return [...this.docs()]
       .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
       .slice(0, 5);
@@ -66,30 +69,18 @@ export class DashboardComponent implements OnInit {
 
   constructor(
     private api:    ApiService,
-    private auth:   AuthService,
+    public  auth:   AuthService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
-    /**
-     * Moderado 11 — Fix 3:
-     * El id del usuario es 0 después del login (el backend no lo devuelve).
-     * Se carga la lista de usuarios y se busca por email para obtener el id real,
-     * igual que se hizo en tareas.component.ts.
-     */
-    const email = this.auth.user()?.email;
+    const usuarioId = this.auth.user()?.id ?? 0;
 
     const docsPromise = this.api.getDocumentos().toPromise().catch(() => []);
 
-    const tareasPromise = email
-      ? this.api.getUsuarios().toPromise()
-          .then(usuarios => {
-            const yo = (usuarios || []).find(u => u.email === email);
-            return yo
-              ? this.api.getTareasPendientes(yo.id).toPromise().catch(() => [])
-              : Promise.resolve([]);
-          })
-          .catch(() => [])
+    // Tareas solo si el id ya está disponible y el rol puede tener tareas
+    const tareasPromise = (usuarioId > 0 && this.canSeeTareas)
+      ? this.api.getTareasPendientes(usuarioId).toPromise().catch(() => [])
       : Promise.resolve([]);
 
     Promise.all([docsPromise, tareasPromise]).then(([d, t]) => {

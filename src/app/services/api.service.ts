@@ -161,4 +161,40 @@ export class ApiService {
       { ...this.textOpts, params }
     );
   }
+
+  // ── Flujos ─────────────────────────────────────────────────────────
+  /** GET /api/v1/flujos/tipo-documento/{tipoId} — obtiene el flujo de una plantilla */
+  getFlujoByTipo(tipoId: number): Observable<any> {
+    return this.http.get(`${this.BASE}/flujos/tipo-documento/${tipoId}`);
+  }
+
+  /** GET /api/v1/flujos/{flujoId}/etapas — lista las etapas del flujo */
+  getEtapasFlujo(flujoId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.BASE}/flujos/${flujoId}/etapas`);
+  }
+
+  /** POST /api/v1/documentos/{id}/reenviar — reenviar documento al flujo */
+  reenviarAlFlujo(id: number): Observable<any> {
+    return this.http.post(`${this.BASE}/documentos/${id}/reenviar`, {}, this.textOpts);
+  }
+
+  /** GET /api/v1/flujos — listar todos los flujos */
+  getFlujos(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.BASE}/flujos`);
+  }
+
+  /** POST /api/v1/flujos — crear flujo */
+  crearFlujo(data: { nombre: string }): Observable<any> {
+    return this.http.post(`${this.BASE}/flujos`, data);
+  }
+
+  /** POST /api/v1/flujos/{flujoId}/etapas — agregar etapa al flujo */
+  agregarEtapaFlujo(flujoId: number, data: any): Observable<any> {
+    return this.http.post(`${this.BASE}/flujos/${flujoId}/etapas`, data);
+  }
+
+  /** DELETE /api/v1/flujos/etapas/{etapaId} — eliminar etapa */
+  eliminarEtapaFlujo(etapaId: number): Observable<any> {
+    return this.http.delete(`${this.BASE}/flujos/etapas/${etapaId}`, this.textOpts);
+  }
 }

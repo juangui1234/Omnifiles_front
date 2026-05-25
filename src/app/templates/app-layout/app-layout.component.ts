@@ -28,8 +28,8 @@ import { TopbarComponent } from '../../organisms/topbar/topbar.component';
     </div>
   `,
   styles: [`
-    .layout { display: flex; min-height: 100vh; background: var(--color-bg); }
-    .layout-main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+    .layout { display: flex; min-height: 100vh; background: var(--color-primary-dark); }
+    .layout-main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; background: var(--color-bg); }
     .layout-content { flex: 1; padding: 24px; overflow-y: auto; animation: fadeIn 0.2s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   `]
