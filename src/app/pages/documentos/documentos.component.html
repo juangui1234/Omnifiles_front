@@ -1,29 +1,56 @@
 <div class="page">
   <app-alert *ngIf="alert()" [type]="alert()!.type" [message]="alert()!.message" (closed)="alert.set(null)"></app-alert>
 
+  <!-- Toolbar -->
   <div class="toolbar">
     <app-search-bar placeholder="Buscar por nombre..." [value]="search" (searched)="search=$event"></app-search-bar>
     <div class="toolbar-right">
-      <app-select placeholder="Todos los estados" [options]="estadoOptions" [value]="filterEstado" (changed)="filterEstado=$event; loadDocs()" [fullWidth]="false"></app-select>
-      <button class="btn-primary" (click)="modalCreate.set(true)">+ Nuevo Documento</button>
+      <app-select placeholder="Todos los estados" [options]="estadoOptions" [value]="filterEstado"
+        (changed)="filterEstado=$event; loadDocs()" [fullWidth]="false"></app-select>
+      <button *ngIf="auth.isAdmin()" class="btn-flujo" (click)="abrirModalFlujo()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>
+        Nuevo Flujo
+      </button>
+      <button *ngIf="canCreate" class="btn-primary" (click)="abrirModal()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nuevo Documento
+      </button>
     </div>
   </div>
 
+  <!-- Tabla -->
   <div class="table-wrapper" *ngIf="!loading(); else spnr">
     <table class="table">
-      <thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+      <thead>
+        <tr>
+          <th>ID</th><th>Nombre</th><th>Tipo</th><th>Estado</th><th>Fecha</th><th>Acciones</th>
+        </tr>
+      </thead>
       <tbody>
         <tr *ngIf="filtered.length === 0"><td colspan="6" class="empty">No hay documentos registrados</td></tr>
         <tr *ngFor="let doc of filtered" class="tr">
-          <td>{{ doc.id }}</td>
+          <td><strong class="id-cell">{{ doc.id }}</strong></td>
           <td><strong>{{ doc.nombre || '—' }}</strong></td>
-          <td>{{ doc.tipoDocumentoNombre || '—' }}</td>
+          <td>{{ tipoNombre(doc.tipoDocumentoId) }}</td>
           <td><app-badge [estado]="doc.estado" [dot]="true"></app-badge></td>
-          <td>{{ formatDate(doc.fechaCreacion) }}</td>
+          <td>{{ formatDate(doc.createdAt) }}</td>
           <td>
             <div class="actions">
-              <button class="btn-sm btn-ghost" (click)="verHistorial(doc)">Historial</button>
-              <button class="btn-sm btn-danger" (click)="eliminar(doc.id)">🗑</button>
+              <button class="btn-sm btn-ghost" (click)="verHistorial(doc)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Historial
+              </button>
+              <button
+                *ngIf="doc.estado === 'CREADO' && esCreador(doc)"
+                class="btn-sm btn-corregir"
+                (click)="abrirModalCorregir(doc)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Corregir y reenviar
+              </button>
+              <button class="btn-sm btn-danger" (click)="eliminar(doc.id)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                Eliminar
+              </button>
             </div>
           </td>
         </tr>
@@ -32,31 +59,228 @@
   </div>
   <ng-template #spnr><div class="center"><app-spinner></app-spinner></div></ng-template>
 
-  <!-- Modal Crear -->
-  <app-modal [open]="modalCreate()" title="Crear Documento" (closed)="modalCreate.set(false)">
-    <div class="form">
-      <div class="field">
-        <label class="field-label">Nombre del documento *</label>
-        <input class="field-input" placeholder="Ej: Informe enero" [(ngModel)]="form.nombre" />
+  <!-- ═══════════════════════════════════════
+       MODAL CREAR DOCUMENTO
+  ═══════════════════════════════════════ -->
+  <app-modal [open]="modalCreate()" title="Crear Documento" size="lg" (closed)="modalCreate.set(false)">
+    <div class="crear-form">
+
+      <!-- PASO 1: Plantilla -->
+      <div class="paso-header">
+        <span class="paso-num">1</span>
+        <span class="paso-title">Tipo de plantilla</span>
+        <div class="paso-divider"></div>
       </div>
-      <app-select label="Tipo documental *" [options]="tipos()" [value]="form.tipoDocumentoId" (changed)="form.tipoDocumentoId=$event"></app-select>
-      <app-select label="Usuario responsable *" [options]="usuarios()" [value]="form.usuarioId" (changed)="form.usuarioId=$event"></app-select>
-      <div class="field">
-        <label class="field-label">Observaciones</label>
-        <input class="field-input" placeholder="Opcional..." [(ngModel)]="form.observaciones" />
+      <div class="template-grid">
+        <div *ngFor="let tipo of tiposRaw()" class="tpl-card"
+          [class.selected]="tipoSelId() === tipo.id" (click)="seleccionarTipo(tipo)">
+          <div class="tpl-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="tpl-name">{{ tipo.nombre }}</div>
+          <div class="tpl-desc">{{ tipo.descripcion }}</div>
+        </div>
       </div>
-      <div class="file-field">
-        <label class="file-label">Archivo (PDF, DOCX)</label>
-        <label class="file-drop">
-          📎 {{ file ? file.name : 'Seleccionar archivo...' }}
-          <input type="file" accept=".pdf,.docx,.doc" (change)="onFileChange($event)" style="display:none" />
+
+      <!-- PASO 2: Subtipo -->
+      <ng-container *ngIf="tipoSelId() && subtipos().length > 0">
+        <div class="paso-header">
+          <span class="paso-num">2</span>
+          <span class="paso-title">Subtipo de {{ tipoSel?.nombre }}</span>
+          <div class="paso-divider"></div>
+        </div>
+        <div class="subtype-grid">
+          <div *ngFor="let sub of subtipos()" class="sub-card"
+            [class.selected]="subtipoSel() === sub" (click)="seleccionarSubtipo(sub)">
+            <div class="sub-name">{{ sub }}</div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- PASO 3: Flujo -->
+      <ng-container *ngIf="tipoSelId() && (subtipos().length === 0 || subtipoSel())">
+        <div class="paso-header">
+          <span class="paso-num">{{ pasoFlujo }}</span>
+          <span class="paso-title">Seleccionar flujo de aprobación</span>
+          <div class="paso-divider"></div>
+        </div>
+
+        <div *ngIf="flujos().length === 0" class="warn-box">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          No hay flujos creados. El administrador debe crear al menos uno.
+        </div>
+
+        <div class="flujo-selector" *ngIf="flujos().length > 0">
+          <div *ngFor="let f of flujos()" class="flujo-option"
+            [class.selected]="flujoSelId() === f.id" (click)="seleccionarFlujo(f.id)">
+            <div class="flujo-option-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>
+            </div>
+            <div class="flujo-option-name">{{ f.nombre }}</div>
+            <div class="flujo-option-etapas" *ngIf="f.etapas">{{ f.etapas.length }} etapa{{ f.etapas.length !== 1 ? 's' : '' }}</div>
+          </div>
+        </div>
+
+        <!-- Vista previa etapas del flujo seleccionado -->
+        <ng-container *ngIf="flujoSelId()">
+          <div *ngIf="loadingFlujo()" class="center"><app-spinner></app-spinner></div>
+          <div *ngIf="!loadingFlujo() && etapasFlujo().length > 0" class="flujo-wrap">
+            <ng-container *ngFor="let etapa of etapasFlujo(); let i = index; let last = last">
+              <div class="flujo-step">
+                <div class="step-circle" [class.step-active]="i === 0" [class.step-pending]="i > 0">{{ etapa.orden }}</div>
+                <div class="step-label">{{ etapa.nombre }}</div>
+                <div class="step-role">{{ etapa.rolNombre || '—' }}</div>
+              </div>
+              <div *ngIf="!last" class="step-connector"></div>
+            </ng-container>
+          </div>
+        </ng-container>
+      </ng-container>
+
+      <!-- PASO 4: Datos -->
+      <ng-container *ngIf="tipoSelId() && (subtipos().length === 0 || subtipoSel()) && flujoSelId()">
+        <div class="paso-header">
+          <span class="paso-num">{{ pasoDatos }}</span>
+          <span class="paso-title">Datos del documento</span>
+          <div class="paso-divider"></div>
+        </div>
+        <div class="field">
+          <label class="field-label">Nombre del documento *</label>
+          <input class="field-input" placeholder="Ej: Contrato laboral Juan Pérez" [(ngModel)]="form.nombre" />
+        </div>
+      </ng-container>
+
+      <!-- PASO 5: Archivo -->
+      <ng-container *ngIf="tipoSelId() && (subtipos().length === 0 || subtipoSel()) && flujoSelId()">
+        <div class="paso-header">
+          <span class="paso-num">{{ pasoArchivo }}</span>
+          <span class="paso-title">Adjuntar archivo</span>
+          <div class="paso-divider"></div>
+        </div>
+        <div class="file-field">
+          <label class="file-drop" [class.file-selected]="!!file">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            <span>{{ file ? file.name : 'Arrastra el archivo aquí o haz clic para seleccionar' }}</span>
+            <span class="file-hint">PDF, DOCX o TXT — máx. 10MB</span>
+            <input type="file" accept=".pdf,.docx,.txt" (change)="onFileChange($event)" style="display:none" />
+          </label>
+        </div>
+      </ng-container>
+
+    </div>
+    <div footer class="modal-footer">
+      <button class="btn-secondary" (click)="modalCreate.set(false)">Cancelar</button>
+      <button class="btn-primary" [disabled]="saving() || !puedeCrear" (click)="crearDocumento()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        {{ saving() ? 'Enviando...' : 'Enviar al flujo de aprobación' }}
+      </button>
+    </div>
+  </app-modal>
+
+  <!-- ═══════════════════════════════════════
+       MODAL CREAR FLUJO
+  ═══════════════════════════════════════ -->
+  <app-modal [open]="modalFlujo()" title="Crear nuevo flujo" size="lg" (closed)="modalFlujo.set(false)">
+    <div class="crear-form">
+
+      <!-- Nombre -->
+      <div class="paso-header">
+        <span class="paso-num">1</span>
+        <span class="paso-title">Nombre del flujo</span>
+        <div class="paso-divider"></div>
+      </div>
+      <div class="field">
+        <label class="field-label">Nombre *</label>
+        <input class="field-input" placeholder="Ej: Flujo de aprobación interna" [(ngModel)]="flujoForm.nombre" />
+      </div>
+
+      <!-- Etapas -->
+      <div class="paso-header" style="margin-top:16px;">
+        <span class="paso-num">2</span>
+        <span class="paso-title">Etapas del flujo</span>
+        <div class="paso-divider"></div>
+      </div>
+
+      <div *ngFor="let etapa of etapasNuevas; let i = index" class="etapa-row">
+        <div class="etapa-num">{{ i + 1 }}</div>
+        <input class="etapa-input" placeholder="Nombre de la etapa"
+          [(ngModel)]="etapasNuevas[i].nombre" />
+        <select class="etapa-select"
+          [ngModel]="etapasNuevas[i].rolId"
+          (ngModelChange)="etapasNuevas[i].rolId = +$event; etapasNuevas[i].usuarioId = 0">
+          <option *ngFor="let r of roles" [value]="r.id">{{ r.nombre }}</option>
+        </select>
+        <select class="etapa-select"
+          [ngModel]="etapasNuevas[i].usuarioId"
+          (ngModelChange)="etapasNuevas[i].usuarioId = +$event">
+          <option [value]="0">— Usuario —</option>
+          <option *ngFor="let u of usuariosDelRol(etapasNuevas[i].rolId)" [value]="u.id">{{ u.nombre || u.email }}</option>
+        </select>
+        <button class="etapa-btn-del" (click)="eliminarEtapa(i)" [disabled]="etapasNuevas.length === 1">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        </button>
+      </div>
+
+      <button class="add-etapa" (click)="agregarEtapa()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Agregar etapa
+      </button>
+
+      <!-- Vista previa -->
+      <div class="paso-header" style="margin-top:4px;">
+        <span class="paso-num">3</span>
+        <span class="paso-title">Vista previa</span>
+        <div class="paso-divider"></div>
+      </div>
+      <div class="flujo-wrap" *ngIf="etapasNuevas.length > 0">
+        <ng-container *ngFor="let etapa of etapasNuevas; let i = index; let last = last">
+          <div class="flujo-step">
+            <div class="step-circle" [class.step-active]="i === 0" [class.step-pending]="i > 0">{{ i + 1 }}</div>
+            <div class="step-label">{{ etapa.nombre || 'Etapa ' + (i+1) }}</div>
+            <div class="step-role">{{ roles.find(r => r.id === etapa.rolId)?.nombre || '—' }}</div>
+          </div>
+          <div *ngIf="!last" class="step-connector"></div>
+        </ng-container>
+      </div>
+
+    </div>
+    <div footer class="modal-footer">
+      <button class="btn-secondary" (click)="modalFlujo.set(false)">Cancelar</button>
+      <button class="btn-primary" [disabled]="savingFlujo()" (click)="guardarFlujo()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        {{ savingFlujo() ? 'Guardando...' : 'Guardar flujo' }}
+      </button>
+    </div>
+  </app-modal>
+
+  <!-- Modal Corregir y Reenviar -->
+  <app-modal [open]="!!modalCorregir()" title="Corregir y reenviar documento" size="sm" (closed)="modalCorregir.set(null)">
+    <div class="crear-form">
+      <div class="info-box" style="margin-bottom:16px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Sube el archivo corregido. El documento volverá al inicio del flujo de aprobación.
+      </div>
+      <div class="field">
+        <label class="field-label">Documento</label>
+        <div style="padding:8px 12px;background:var(--color-surface-2);border-radius:var(--radius-md);font-size:var(--text-sm);color:var(--color-primary);font-weight:var(--weight-semibold);">
+          📄 {{ modalCorregir()?.nombre }}
+        </div>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label class="field-label">Archivo corregido *</label>
+        <label class="file-drop" [class.file-selected]="!!fileCorre">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+          <span>{{ fileCorre ? fileCorre.name : 'Haz clic para seleccionar el archivo corregido' }}</span>
+          <span class="file-hint">PDF, DOCX o TXT — máx. 10MB</span>
+          <input type="file" accept=".pdf,.docx,.txt" (change)="onFileCorreccionChange($event)" style="display:none" />
         </label>
       </div>
     </div>
     <div footer class="modal-footer">
-      <button class="btn-secondary" (click)="modalCreate.set(false)">Cancelar</button>
-      <button class="btn-primary" [disabled]="saving()" (click)="crearDocumento()">
-        {{ saving() ? 'Creando...' : 'Crear Documento' }}
+      <button class="btn-secondary" (click)="modalCorregir.set(null)">Cancelar</button>
+      <button class="btn-primary" [disabled]="savingCorreccion() || !fileCorre" (click)="reenviarAlFlujo()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        {{ savingCorreccion() ? 'Reenviando...' : 'Reenviar al flujo' }}
       </button>
     </div>
   </app-modal>
@@ -68,12 +292,21 @@
       <div *ngFor="let h of historial()" class="hist-item">
         <div class="hist-dot"></div>
         <div class="hist-content">
-          <span class="hist-accion">{{ h.accion || h.tipoAccion }}</span>
-          <div class="hist-meta">
-            <span>Por: {{ h.usuarioNombre || '—' }}</span>
-            <span>{{ formatDate(h.fechaAccion || h.fechaCambio) }}</span>
-            <app-badge *ngIf="h.estadoResultante" [estado]="h.estadoResultante"></app-badge>
+          <div class="hist-header">
+            <span class="hist-accion">{{ h.accion }}</span>
+            <app-badge *ngIf="h.estado" [estado]="h.estado"></app-badge>
           </div>
+          <div class="hist-meta">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>Usuario #{{ h.usuarioId || '—' }}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>{{ formatDate(h.fechaCambio) }}</span>
+          </div>
+          <div *ngIf="h.observaciones" class="hist-obs">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            {{ h.observaciones }}
+          </div>
+          <div *ngIf="!h.observaciones" class="hist-obs-empty">Sin observaciones</div>
         </div>
       </div>
     </div>

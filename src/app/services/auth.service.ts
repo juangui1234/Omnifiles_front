@@ -5,49 +5,69 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
-import { LoginRequest, LoginResponse, UsuarioResponse } from '../models';
+import { LoginResponse, UsuarioResponse } from '../models';
+
+const ROLE_PREFIX = 'ROLE_';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
 
   private readonly API = '/omnifiles/auth';
 
-  // Signal reactivo con el usuario actual
-  private _user = signal<UsuarioResponse | null>(this.loadUser());
+  private _user  = signal<UsuarioResponse | null>(this.loadUser());
   private _token = signal<string | null>(sessionStorage.getItem('omnifiles_token'));
+  private _roles = signal<string[]>(this.loadRoles());
 
-  readonly user   = this._user.asReadonly();
-  readonly token  = this._token.asReadonly();
-  readonly isAuth = computed(() => !!this._user());
+  readonly user    = this._user.asReadonly();
+  readonly token   = this._token.asReadonly();
+  readonly isAuth  = computed(() => !!this._token());
   readonly isAdmin = computed(() =>
-    this._user()?.rol === 'ADMIN' || this._user()?.rolNombre === 'ADMIN'
+    this._roles().includes(`${ROLE_PREFIX}ADMIN`)
   );
 
   constructor(private http: HttpClient) {}
 
-  /**
-   * Inicia sesión y persiste el token y usuario en sessionStorage
-   */
   login(email: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.API}/login`, { email, password }).pipe(
       tap(res => {
-        const usuario = res.usuario || (res as any);
+        // El backend ahora devuelve el id directamente en la respuesta del login
+        const usuario: UsuarioResponse = {
+          id:        res.id ?? 0,
+          nombre:    res.email,
+          email:     res.email,
+          rolId:     0,
+          rolNombre: this.extractRolNombre(res.roles),
+          activo:    true
+        };
+
+        this._token.set(res.accessToken);
         this._user.set(usuario);
-        this._token.set(res.token);
+        this._roles.set(res.roles);
+
+        sessionStorage.setItem('omnifiles_token', res.accessToken);
+        sessionStorage.setItem('omnifiles_roles', JSON.stringify(res.roles));
         sessionStorage.setItem('omnifiles_user',  JSON.stringify(usuario));
-        sessionStorage.setItem('omnifiles_token', res.token);
       })
     );
   }
 
-  /**
-   * Cierra sesión limpiando estado y sessionStorage
-   */
   logout(): void {
     this._user.set(null);
     this._token.set(null);
-    sessionStorage.removeItem('omnifiles_user');
+    this._roles.set([]);
     sessionStorage.removeItem('omnifiles_token');
+    sessionStorage.removeItem('omnifiles_roles');
+    sessionStorage.removeItem('omnifiles_user');
+  }
+
+  hasRole(rol: string): boolean {
+    const normalized = rol.startsWith(ROLE_PREFIX) ? rol : `${ROLE_PREFIX}${rol}`;
+    return this._roles().includes(normalized);
+  }
+
+  private extractRolNombre(roles: string[]): string {
+    if (!roles || roles.length === 0) return '';
+    return roles[0].replace(ROLE_PREFIX, '');
   }
 
   private loadUser(): UsuarioResponse | null {
@@ -55,5 +75,12 @@ export class AuthService {
       const s = sessionStorage.getItem('omnifiles_user');
       return s ? JSON.parse(s) : null;
     } catch { return null; }
+  }
+
+  private loadRoles(): string[] {
+    try {
+      const s = sessionStorage.getItem('omnifiles_roles');
+      return s ? JSON.parse(s) : [];
+    } catch { return []; }
   }
 }

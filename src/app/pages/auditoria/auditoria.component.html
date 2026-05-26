@@ -1,89 +1,66 @@
 <div class="page">
-  <app-alert *ngIf="alert()" [type]="alert()!.type" [message]="alert()!.message" (closed)="alert.set(null)"></app-alert>
 
-  <!-- Stats -->
-  <div class="stats-grid">
-    <div class="stat-card primary">
-      <div class="stat-icon">🕐</div>
-      <div class="stat-value">{{ stats.total }}</div>
-      <div class="stat-label">Total Eventos</div>
-    </div>
-    <div class="stat-card info">
-      <div class="stat-icon">⚡</div>
-      <div class="stat-value">{{ stats.hoy }}</div>
-      <div class="stat-label">Hoy</div>
-    </div>
-    <div class="stat-card success">
-      <div class="stat-icon">✓</div>
-      <div class="stat-value">{{ stats.aprobaciones }}</div>
-      <div class="stat-label">Aprobaciones</div>
-    </div>
-    <div class="stat-card danger">
-      <div class="stat-icon">✕</div>
-      <div class="stat-value">{{ stats.rechazos }}</div>
-      <div class="stat-label">Rechazos</div>
-    </div>
-  </div>
-
-  <!-- Toolbar -->
   <div class="toolbar">
-    <input class="search-input" type="search" placeholder="Buscar por documento, usuario o acción..." [(ngModel)]="search" />
-    <select class="filter-select" [(ngModel)]="filterAccion">
-      <option value="">Todas las acciones</option>
-      <option value="CREACION">Creación</option>
-      <option value="APROBAC">Aprobación</option>
-      <option value="RECHAZO">Rechazo</option>
-      <option value="CORRECC">Corrección</option>
-      <option value="ELIMINA">Eliminación</option>
-    </select>
+    <app-search-bar
+      placeholder="Buscar por acción o usuario..."
+      [value]="search"
+      (searched)="search=$event">
+    </app-search-bar>
+    <div class="toolbar-right">
+      <app-select
+        placeholder="Todos los resultados"
+        [options]="resultadoOptions"
+        [value]="filtroResultado"
+        (changed)="filtroResultado=$event"
+        [fullWidth]="false">
+      </app-select>
+      <button class="btn-danger-outline" (click)="limpiarLog()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        Limpiar sesión
+      </button>
+    </div>
   </div>
 
-  <div class="result-count" *ngIf="!loading()">
-    {{ filtered.length }} {{ filtered.length === 1 ? 'registro' : 'registros' }} encontrados
+  <div class="counter">
+    {{ filtered.length }} registro{{ filtered.length !== 1 ? 's' : '' }} encontrado{{ filtered.length !== 1 ? 's' : '' }}
   </div>
 
-  <!-- Tabla -->
-  <div class="table-wrapper" *ngIf="!loading(); else spnr">
+  <div class="table-wrapper">
     <table class="table">
       <thead>
-        <tr><th>Fecha y Hora</th><th>Acción</th><th>Documento</th><th>Usuario</th><th>Estado Resultado</th><th>Observaciones</th></tr>
+        <tr>
+          <th>Fecha y hora</th>
+          <th>Usuario</th>
+          <th>Acción</th>
+          <th>Método</th>
+          <th>Resultado</th>
+          <th>Detalle</th>
+        </tr>
       </thead>
       <tbody>
-        <tr *ngIf="filtered.length === 0"><td colspan="6" class="empty">No hay registros que coincidan</td></tr>
-        <tr *ngFor="let log of filtered" class="tr">
-          <td>
-            <div class="date-cell">
-              <span class="date">{{ formatDate(log.fechaAccion || log.fechaCambio) }}</span>
-              <span class="time">{{ formatTime(log.fechaAccion || log.fechaCambio) }}</span>
-            </div>
-          </td>
-          <td>
-            <app-badge [label]="log.accion || log.tipoAccion || '—'" [variant]="badgeVariant(log.accion || log.tipoAccion || '')"></app-badge>
-          </td>
-          <td>
-            <div class="doc-cell">
-              📄 {{ log.documentoNombre || 'Doc #' + log.documentoId }}
-            </div>
-          </td>
+        <tr *ngIf="filtered.length === 0">
+          <td colspan="6" class="empty">No hay registros de auditoría en esta sesión</td>
+        </tr>
+        <tr *ngFor="let e of filtered" class="tr">
+          <td class="td-mono">{{ formatDate(e.timestamp) }}</td>
           <td>
             <div class="user-cell">
-              <div class="avatar">{{ inicial(log.usuarioNombre) }}</div>
-              <span>{{ log.usuarioNombre || '—' }}</span>
+              <div class="user-avatar">{{ e.usuario[0].toUpperCase() }}</div>
+              {{ e.usuario }}
             </div>
           </td>
+          <td><strong>{{ e.accion }}</strong></td>
+          <td><span class="badge-method" [class]="'method-' + e.metodo.toLowerCase()">{{ e.metodo }}</span></td>
           <td>
-            <app-badge *ngIf="log.estadoResultante" [estado]="log.estadoResultante"></app-badge>
-            <span *ngIf="!log.estadoResultante" class="dash">—</span>
+            <span class="badge-resultado" [class.exitoso]="e.resultado === 'EXITOSO'" [class.fallido]="e.resultado === 'FALLIDO'">
+              <span class="dot"></span>
+              {{ e.resultado }}
+            </span>
           </td>
-          <td class="obs">{{ log.observaciones || '—' }}</td>
+          <td class="td-detalle">{{ e.detalle || '—' }}</td>
         </tr>
       </tbody>
     </table>
   </div>
-  <ng-template #spnr>
-    <div class="center">
-      <app-spinner [size]="36"></app-spinner>
-      <span class="loading-txt">Cargando registros de auditoría...</span>
-    </div>
-  </ng-template>
+
 </div>

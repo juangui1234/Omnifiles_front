@@ -16,6 +16,7 @@ const ICONS = {
   x:     '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
   file:  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
   plus:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  task:  '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
 };
 
 @Component({
@@ -26,11 +27,29 @@ const ICONS = {
   styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent implements OnInit {
-  loading  = signal(true);
-  docs     = signal<Documento[]>([]);
-  tareas   = signal<Tarea[]>([]);
-  user     = this.auth.user;
-  icons    = ICONS;
+  loading = signal(true);
+  docs    = signal<Documento[]>([]);
+  tareas  = signal<Tarea[]>([]);
+  icons   = ICONS;
+
+  get nombreUsuario(): string {
+    const u = this.auth.user();
+    return u?.nombre || u?.email || 'Usuario';
+  }
+
+  get rolNombre(): string {
+    const u = this.auth.user();
+    return u?.rolNombre || '';
+  }
+
+  get canCreate(): boolean {
+    return this.auth.isAdmin() || this.auth.hasRole('CREADOR');
+  }
+
+  get canSeeTareas(): boolean {
+    return this.auth.hasRole('ADMIN') || this.auth.hasRole('REVISOR') ||
+           this.auth.hasRole('APROBADOR') || this.auth.hasRole('FIRMANTE');
+  }
 
   get stats() {
     const d = this.docs();
@@ -43,17 +62,28 @@ export class DashboardComponent implements OnInit {
   }
 
   get recent(): Documento[] {
-    return [...this.docs()].sort((a,b) => new Date(b.fechaCreacion||0).getTime() - new Date(a.fechaCreacion||0).getTime()).slice(0, 5);
+    return [...this.docs()]
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+      .slice(0, 5);
   }
 
-  constructor(private api: ApiService, private auth: AuthService, private router: Router) {}
+  constructor(
+    private api:    ApiService,
+    public  auth:   AuthService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
-    const uid = this.user()?.id;
-    Promise.all([
-      this.api.getDocumentos().toPromise().catch(() => []),
-      uid ? this.api.getTareasPendientes(uid).toPromise().catch(() => []) : Promise.resolve([]),
-    ]).then(([d, t]) => {
+    const usuarioId = this.auth.user()?.id ?? 0;
+
+    const docsPromise = this.api.getDocumentos().toPromise().catch(() => []);
+
+    // Tareas solo si el id ya está disponible y el rol puede tener tareas
+    const tareasPromise = (usuarioId > 0 && this.canSeeTareas)
+      ? this.api.getTareasPendientes(usuarioId).toPromise().catch(() => [])
+      : Promise.resolve([]);
+
+    Promise.all([docsPromise, tareasPromise]).then(([d, t]) => {
       this.docs.set(Array.isArray(d) ? d : []);
       this.tareas.set(Array.isArray(t) ? t : []);
       this.loading.set(false);
